@@ -4,14 +4,14 @@
 # Using build pattern: cmake
 #
 Name     : DML
-Version  : 1.0.0
-Release  : 2
-URL      : https://github.com/intel/DML/archive/v1.0.0/DML-1.0.0.tar.gz
-Source0  : https://github.com/intel/DML/archive/v1.0.0/DML-1.0.0.tar.gz
+Version  : 1.1.0
+Release  : 3
+URL      : https://github.com/intel/DML/archive/v1.1.0/DML-1.1.0.tar.gz
+Source0  : https://github.com/intel/DML/archive/v1.1.0/DML-1.1.0.tar.gz
 Summary  : No detailed summary available
 Group    : Development/Tools
 License  : MIT
-Requires: DML-bin = %{version}-%{release}
+Requires: DML-data = %{version}-%{release}
 Requires: DML-license = %{version}-%{release}
 BuildRequires : buildreq-cmake
 BuildRequires : glibc-dev
@@ -19,26 +19,23 @@ BuildRequires : util-linux-dev
 # Suppress stripping binaries
 %define __strip /bin/true
 %define debug_package %{nil}
-Patch1: backport-utility-include.patch
 
 %description
 Intel® Data Mover Library (Intel® DML)
 =================================================
-[Get Started](#get-started) | [Documentation](#documentation) | [License](#license) | [GitHub repository](https://github.com/intel/DML)
 
-%package bin
-Summary: bin components for the DML package.
-Group: Binaries
-Requires: DML-license = %{version}-%{release}
+%package data
+Summary: data components for the DML package.
+Group: Data
 
-%description bin
-bin components for the DML package.
+%description data
+data components for the DML package.
 
 
 %package dev
 Summary: dev components for the DML package.
 Group: Development
-Requires: DML-bin = %{version}-%{release}
+Requires: DML-data = %{version}-%{release}
 Provides: DML-devel = %{version}-%{release}
 Requires: DML = %{version}-%{release}
 
@@ -55,64 +52,85 @@ license components for the DML package.
 
 
 %prep
-%setup -q -n DML-1.0.0
-cd %{_builddir}/DML-1.0.0
-%patch1 -p1
+%setup -q -n DML-1.1.0
+cd %{_builddir}/DML-1.1.0
 
 %build
 export http_proxy=http://127.0.0.1:9/
 export https_proxy=http://127.0.0.1:9/
 export no_proxy=localhost,127.0.0.1,0.0.0.0
 export LANG=C.UTF-8
-export SOURCE_DATE_EPOCH=1680629700
+export SOURCE_DATE_EPOCH=1689810873
 mkdir -p clr-build
 pushd clr-build
 export GCC_IGNORE_WERROR=1
 export AR=gcc-ar
 export RANLIB=gcc-ranlib
 export NM=gcc-nm
-export CFLAGS="$CFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz "
-export FCFLAGS="$FFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz "
-export FFLAGS="$FFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz "
-export CXXFLAGS="$CXXFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz "
+export CFLAGS="$CFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd "
+export FCFLAGS="$FFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd "
+export FFLAGS="$FFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd "
+export CXXFLAGS="$CXXFLAGS -O3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd "
+%cmake .. -DDML_BUILD_TESTS=OFF \
+-DDML_BUILD_EXAMPLES=OFF
+make  %{?_smp_mflags}
+popd
+mkdir -p clr-build-avx2
+pushd clr-build-avx2
+export GCC_IGNORE_WERROR=1
+export AR=gcc-ar
+export RANLIB=gcc-ranlib
+export NM=gcc-nm
+export CFLAGS="$CFLAGS -O3 -Wl,-z,x86-64-v3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd -march=x86-64-v3 "
+export FCFLAGS="$FFLAGS -O3 -Wl,-z,x86-64-v3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd -march=x86-64-v3 "
+export FFLAGS="$FFLAGS -O3 -Wl,-z,x86-64-v3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd -march=x86-64-v3 "
+export CXXFLAGS="$CXXFLAGS -O3 -Wl,-z,x86-64-v3 -fdebug-types-section -femit-struct-debug-baseonly -ffat-lto-objects -flto=auto -g1 -gno-column-info -gno-variable-location-views -gz=zstd -march=x86-64-v3 "
+export CFLAGS="$CFLAGS -march=x86-64-v3 -m64 -Wl,-z,x86-64-v3"
+export CXXFLAGS="$CXXFLAGS -march=x86-64-v3 -m64 -Wl,-z,x86-64-v3"
+export FFLAGS="$FFLAGS -march=x86-64-v3 -m64 -Wl,-z,x86-64-v3"
+export FCFLAGS="$FCFLAGS -march=x86-64-v3 -m64 -Wl,-z,x86-64-v3"
 %cmake .. -DDML_BUILD_TESTS=OFF \
 -DDML_BUILD_EXAMPLES=OFF
 make  %{?_smp_mflags}
 popd
 
 %install
-export SOURCE_DATE_EPOCH=1680629700
+export SOURCE_DATE_EPOCH=1689810873
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/package-licenses/DML
 cp %{_builddir}/DML-%{version}/LICENSE %{buildroot}/usr/share/package-licenses/DML/d6b97f1ba83cfecb7d9dcb7165e8d5b7bdf6be98 || :
+pushd clr-build-avx2
+%make_install_v3  || :
+popd
 pushd clr-build
 %make_install
 popd
+/usr/bin/elf-move.py avx2 %{buildroot}-v3 %{buildroot} %{buildroot}/usr/share/clear/filemap/filemap-%{name}
 
 %files
 %defattr(-,root,root,-)
 
-%files bin
+%files data
 %defattr(-,root,root,-)
-/usr/bin/configs/1n1d1e1w-s-n1.conf
-/usr/bin/configs/1n1d1e1w-s-n2.conf
-/usr/bin/configs/1n1d4e1w-s-n1.conf
-/usr/bin/configs/1n1d4e1w-s-n2.conf
-/usr/bin/configs/1n2d4e1w-s-n1.conf
-/usr/bin/configs/1n2d4e1w-s-n2.conf
-/usr/bin/configs/1n3d4e1w-s-n1.conf
-/usr/bin/configs/1n3d4e1w-s-n2.conf
-/usr/bin/configs/1n4d1e1w-s-n1.conf
-/usr/bin/configs/1n4d1e1w-s-n2.conf
-/usr/bin/configs/1n4d4e1w-s-n1.conf
-/usr/bin/configs/1n4d4e1w-s-n2.conf
-/usr/bin/configs/2n1d1e1w-s.conf
-/usr/bin/configs/2n1d4e1w-s.conf
-/usr/bin/configs/2n2d4e1w-s.conf
-/usr/bin/configs/2n3d4e1w-s.conf
-/usr/bin/configs/2n4d4e1w-s.conf
-/usr/bin/scripts/accel_conf.py
-/usr/bin/scripts/accel_conf.sh
+/usr/share/DML/configs/1n1d1e1w-s-n1.conf
+/usr/share/DML/configs/1n1d1e1w-s-n2.conf
+/usr/share/DML/configs/1n1d4e1w-s-n1.conf
+/usr/share/DML/configs/1n1d4e1w-s-n2.conf
+/usr/share/DML/configs/1n2d4e1w-s-n1.conf
+/usr/share/DML/configs/1n2d4e1w-s-n2.conf
+/usr/share/DML/configs/1n3d4e1w-s-n1.conf
+/usr/share/DML/configs/1n3d4e1w-s-n2.conf
+/usr/share/DML/configs/1n4d1e1w-s-n1.conf
+/usr/share/DML/configs/1n4d1e1w-s-n2.conf
+/usr/share/DML/configs/1n4d4e1w-s-n1.conf
+/usr/share/DML/configs/1n4d4e1w-s-n2.conf
+/usr/share/DML/configs/2n1d1e1w-s.conf
+/usr/share/DML/configs/2n1d4e1w-s.conf
+/usr/share/DML/configs/2n2d4e1w-s.conf
+/usr/share/DML/configs/2n3d4e1w-s.conf
+/usr/share/DML/configs/2n4d4e1w-s.conf
+/usr/share/DML/scripts/accel_conf.py
+/usr/share/DML/scripts/accel_conf.sh
 
 %files dev
 %defattr(-,root,root,-)
